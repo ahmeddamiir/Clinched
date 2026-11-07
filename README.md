@@ -1,184 +1,219 @@
-# 🥊 Clinched: Daily Athlete Training & Nutrition Tracker (Qt / C++ / QML)
+# 🥊 Clinched: Daily Athlete Training & Nutrition Tracker
 
-**Clinched** is a local desktop application designed for fighters and athletes to track daily training volume and caloric intake against target body goals. It replaces complex relational database engines with a robust, date-indexed **CSV log structure** and an external **JSON preset dictionary**, ensuring zero runtime overhead and clear data persistence.
+**Clinched** is a simple single-user desktop app for fighters and athletes to log daily training and food intake, and compare calories against a personal daily target.
+
+* **Stack:** Qt 6.11 (Qt Quick / QML for the UI, C++ for the logic)
+* **Build system:** CMake (Qt Creator 20)
+* **Storage:** no database. Two CSV logs + two JSON files.
 
 ---
 
-## 📂 Repository Directory Tree Layout
+## 🎯 Scope (keep it simple)
+
+**In scope (v1):**
+* Log meals (food + grams → calories)
+* Log workouts (timed or strength)
+* Profile screen → daily calorie target
+* Dashboard with today's numbers
+
+**Later (after the semester):**
+* Line chart of history (QtCharts)
+* Searchable ComboBox
+* Edit/delete entries, unit tests, etc.
+
+---
+
+## 📂 Project Layout
 
 ```text
 Clinched/
-├── Clinched.pro                 # Core Qt Project Build Script
-├── presets.json                 # Reference library for foods & workout types
-├── user_profile.json            # Target body weight, baseline BMR, and calculated budget
-├── data/                        # Historical & active daily logs
-│   ├── 2026-11-05_workouts.csv
-│   ├── 2026-11-05_diet.csv
-│   ├── 2026-11-06_workouts.csv
-│   ├── 2026-11-06_diet.csv
-│   ├── 2026-11-07_workouts.csv  # Active daily session
-│   └── 2026-11-07_diet.csv      # Active daily session
-├── src/
-│   ├── main.cpp                 # Bootstrapper & QML engine registration
-│   ├── datamanager.h            # CSV append engine, day-file scanner & chart parser
-│   ├── datamanager.cpp
-│   ├── profilecalculator.h     # BMR, TDEE, & Calorie budget algorithms
-│   └── profilecalculator.cpp
-└── qml/
-    ├── main.qml                 # Main window with navigation bar
-    ├── DashboardView.qml        # Daily summary cards & historical QtCharts LineSeries
-    ├── WorkoutsView.qml         # Training logging tab with search & session list
-    ├── DietView.qml             # Caloric intake logger with live math & batch review
-    └── components/
-        ├── MetricCard.qml       # Reusable UI card for metrics
-        └── SearchableCombo.qml  # Filterable editable ComboBox
+├── CMakeLists.txt
+├── main.cpp                  # Starts the QML engine, registers DataManager
+├── datamanager.h / .cpp      # CSV read/write, presets, daily totals
+├── profilecalculator.h / .cpp# BMR, TDEE, calorie target
+├── Main.qml                  # Window + tab bar (4 tabs)
+├── DashboardView.qml         # Today's cards (+ chart later)
+├── DietView.qml              # Log meals
+├── WorkoutsView.qml          # Log workouts
+├── ProfileView.qml           # Edit body details + goal
+└── components/
+    └── MetricCard.qml        # Reusable card
 ```
 
----
-
-## 🔄 End-to-End Data Flow Architecture
-
-The data architecture guarantees session recovery (closing and reopening the application maintains daily persistence) using standard file I/O operations in **Append Mode (`QIODevice::Append`)**.
+**Runtime files** (created automatically in the app data folder via `QStandardPaths::AppDataLocation`):
 
 ```text
- ┌────────────────────────────────────────────────────────────────────────┐
- │                         INITIALIZATION PHASE                           │
- └────────────────────────────────────────────────────────────────────────┘
-        │
-        ├──> [ presets.json ] ───> Loads searchable food items & workout lists
-        │
-        └──> [ user_profile.json ] ──> Computes Target Calories via Mifflin-St Jeor:
-                                        Target = TDEE (+/- Surplus/Deficit)
-
- ┌────────────────────────────────────────────────────────────────────────┐
- │                         ACTIVE LOGGING PHASE                           │
- └────────────────────────────────────────────────────────────────────────┘
-
-     [ WorkoutsView ]                            [ DietView ]
-    (Select type + Duration/Vol)                (Select food + Weight in Grams)
-              │                                               │
-              │                                               ▼
-              │                                Live preview calculation:
-              │                                Cals = (Grams * Cal/100g) / 100
-              │                                               │
-              ▼                                               ▼
-   Append to daily log:                           Append to daily log:
-   `YYYY-MM-DD_workouts.csv`                      `YYYY-MM-DD_diet.csv`
-              │                                               │
-              └───────────────────────┬───────────────────────┘
-                                      ▼
-                        [ System Data Directory ]
-                      (Existing rows preserved;
-                       new rows appended safely)
-
- ┌────────────────────────────────────────────────────────────────────────┐
- │                      AGGREGATION & DASHBOARD PHASE                     │
- └────────────────────────────────────────────────────────────────────────┘
-                                      │
-                                      ▼
-                             [ DataManager (C++) ]
-                                      │
-    ┌─────────────────────────────────┴─────────────────────────────────┐
-    ▼                                                                   ▼
-[ Current Day Aggregate ]                                    [ Historical Timeline ]
- • Reads `today_diet.csv`                                     • Scans `data/*.csv` files
- • Sums daily consumed calories                               • Extracts daily total calories
- • Compares with Target Budget                                • Builds `QLineSeries` coordinates
- • Calculates remaining allowance                             • Renders trend vs. target line
-    │                                                                   │
-    └─────────────────────────────────┬─────────────────────────────────┘
-                                      ▼
-                             [ DashboardView.qml ]
-                      (Live metric cards + Progress chart)
+diet.csv            # every meal ever logged, one row per meal
+workouts.csv        # every workout ever logged, one row per workout
+presets.json        # foods + workouts list (editable, no recompiling)
+user_profile.json   # weight, height, age, sex, activity, goal
 ```
 
 ---
 
-## 🗄️ Flat-File Storage Specifications
+## 🧩 Architecture
 
-### 1. Daily Diet Logs (`YYYY-MM-DD_diet.csv`)
-Appends individual food consumption entries. Closing and reopening the app checks for today's file and loads existing rows.
-* **Format:** `Timestamp,FoodName,Grams,ComputedCalories`
-* **Example:**
-  ```text
-  12:30:15,Chicken Breast,200,330
-  15:10:04,White Rice,150,195
-  19:45:22,Peanut Butter,30,176
-  ```
+Two C++ classes, exposed to QML. QML never touches files directly.
 
-### 2. Daily Workout Logs (`YYYY-MM-DD_workouts.csv`)
-Appends discrete physical training bouts focusing on training volume instead of inaccurate calorie estimation.
-* **Format:** `Timestamp,WorkoutType,DurationOrVolume,IntensityRating`
-* **Example:**
-  ```text
-  10:00:00,Wrestling / Sparring,60 mins,High
-  17:30:00,Strength: Lower Body,5 sets x 5 reps @ 110kg,Moderate
-  ```
+```text
+┌──────────────────────── QML (UI) ────────────────────────┐
+│  Dashboard   │   Diet   │   Workouts   │   Profile        │
+└──────┬───────────┬────────────┬──────────────┬───────────┘
+       │           │            │              │
+       ▼           ▼            ▼              ▼
+┌──────────────────────────┐   ┌─────────────────────────┐
+│       DataManager        │   │    ProfileCalculator    │
+│  - load presets.json     │   │  - BMR (Mifflin-St Jeor)│
+│  - addMeal()             │   │  - TDEE                 │
+│  - addWorkout()          │   │  - daily calorie target │
+│  - todayCalories()       │   └────────────┬────────────┘
+│  - todayMinutes()        │                │
+│  - load/save profile     │◄───────────────┘
+└────────────┬─────────────┘
+             ▼
+   diet.csv · workouts.csv · presets.json · user_profile.json
+```
 
-### 3. Presets Dictionary (`presets.json`)
-Read-only reference file editable without recompilation.
+**Roles:**
+* **QML** = what the user sees and clicks.
+* **DataManager** = reads/writes files, filters by date, sums totals.
+* **ProfileCalculator** = pure math, no file access.
+
+---
+
+## 🔄 How Dates Work
+
+The app doesn't "remember" the day. **Every row stores its own date** at the moment it is logged:
+
+```text
+Add meal clicked → date = QDate::currentDate(), time = QTime::currentTime() → append row
+```
+
+* Log lunch, close the app, reopen at night, log dinner → both rows have today's date automatically.
+* **"Today"** = read the CSV and keep only rows where `Date == today`.
+* **History** = group rows by `Date` and sum.
+* Writing uses `QIODevice::Append`, so old rows are never overwritten.
+
+---
+
+## 🗄️ Data Formats
+
+### 1. `diet.csv`
+```text
+Date,Time,Food,Grams,Calories
+2026-11-07,12:30:15,Chicken Breast (Cooked),200,330
+2026-11-07,21:10:04,White Rice (Cooked),150,195
+```
+`Calories = Grams × cals_per_100g / 100`
+
+### 2. `workouts.csv`
+One fixed set of columns. Fields that don't apply to a workout are left empty.
+```text
+Date,Time,Workout,Minutes,Sets,Reps,WeightKg,Intensity
+2026-11-07,10:00:00,Wrestling / Grappling,60,,,,High
+2026-11-07,17:30:00,Strength: Legs / Posterior Chain,,5,5,110,Moderate
+```
+
+### 3. `presets.json`
+Each workout has a `type` that decides which input fields the UI shows.
 ```json
 {
   "foods": [
     {"name": "Chicken Breast (Cooked)", "cals_per_100g": 165},
-    {"name": "White Rice (Cooked)", "cals_per_100g": 130},
-    {"name": "Rolled Oats", "cals_per_100g": 389},
-    {"name": "Whole Eggs", "cals_per_100g": 143},
-    {"name": "Peanut Butter", "cals_per_100g": 588}
+    {"name": "White Rice (Cooked)",     "cals_per_100g": 130},
+    {"name": "Rolled Oats",             "cals_per_100g": 389},
+    {"name": "Whole Eggs",              "cals_per_100g": 143},
+    {"name": "Peanut Butter",           "cals_per_100g": 588}
   ],
   "workouts": [
-    "Wrestling / Grappling",
-    "MMA Sparring",
-    "Muay Thai / Striking",
-    "Strength: Push Focus",
-    "Strength: Pull Focus",
-    "Strength: Legs / Posterior Chain",
-    "Roadwork / Conditioning"
+    {"name": "Wrestling / Grappling",            "type": "timed"},
+    {"name": "MMA Sparring",                     "type": "timed"},
+    {"name": "Muay Thai / Striking",             "type": "timed"},
+    {"name": "Roadwork / Conditioning",          "type": "timed"},
+    {"name": "Strength: Push Focus",             "type": "strength"},
+    {"name": "Strength: Pull Focus",             "type": "strength"},
+    {"name": "Strength: Legs / Posterior Chain", "type": "strength"}
   ]
+}
+```
+
+### 4. `user_profile.json`
+Written by the Profile tab.
+```json
+{
+  "weightKg": 80,
+  "heightCm": 178,
+  "age": 24,
+  "sex": "male",
+  "activityFactor": 1.55,
+  "goal": "maintain"
 }
 ```
 
 ---
 
-## 🧮 Target Calculation Model
+## 🧮 Calorie Target
 
-The target daily intake accounts for user goals (weight loss, maintenance, or weight gain):
+1. **BMR (Mifflin-St Jeor):**
+   `BMR = 10 × weight(kg) + 6.25 × height(cm) − 5 × age + s`
+   (`s = +5` male, `−161` female)
 
-1. **Basal Metabolic Rate (BMR) [Mifflin-St Jeor]:**
-   $$BMR = 10 \times \text{weight (kg)} + 6.25 \times \text{height (cm)} - 5 \times \text{age} + s$$
-   *(where $s = +5$ for males, $-161$ for females)*
+2. **TDEE:** `TDEE = BMR × activityFactor`
+   Typical factors: 1.2 (sedentary), 1.375 (light), 1.55 (moderate), 1.725 (very active).
 
-2. **Total Daily Energy Expenditure (TDEE):**
-   $$TDEE = BMR \times \text{Activity Factor}$$
-
-3. **Goal-Adjusted Caloric Target:**
-   * **Weight Gain (Bulking):** $\text{Target} = TDEE + 350 \text{ to } 500 \text{ kcal}$
-   * **Weight Loss (Cutting):** $\text{Target} = TDEE - 500 \text{ kcal}$
-   * **Maintenance:** $\text{Target} = TDEE$
+3. **Target by goal:**
+   * Bulk: `TDEE + 400`
+   * Cut: `TDEE − 500`
+   * Maintain: `TDEE`
 
 ---
 
-## 🖥️ Screen Layout Specifications
+## 🖥️ Screens
 
-### 1. Dashboard View (`DashboardView.qml`)
-* **Metric Cards:**
-  * **Daily Target:** Static calculated calorie baseline.
-  * **Consumed Today:** Sum of all `ComputedCalories` in today's CSV.
-  * **Remaining Balance:** $\text{Target} - \text{Consumed}$.
-  * **Today's Training Volume:** Total sessions or minutes logged today.
-* **Progress Line Chart (`QtCharts`):**
-  * Plots daily consumed calories across all dates present in the `data/` folder.
-  * Displays a horizontal reference line for the daily target budget to monitor compliance over time.
+### Main window
+`TabBar` + `StackLayout` with 4 tabs: **Dashboard · Diet · Workouts · Profile**.
 
-### 2. Workouts Tab (`WorkoutsView.qml`)
-* Searchable `ComboBox` populated from `presets.json`.
-* Input field for duration (e.g., minutes) or resistance volume (e.g., sets/reps/weight).
-* Intensity indicator (Low, Moderate, High).
-* Multi-entry capability: clicking **"Add Workout"** appends to today's CSV and updates the in-memory session list without overwriting prior logs.
+### Dashboard
+Four `MetricCard`s:
+* **Daily Target** (from profile)
+* **Consumed Today** (sum of today's calories)
+* **Remaining** (Target − Consumed)
+* **Training Today** (total minutes + number of strength sessions)
 
-### 3. Diet Tab (`DietView.qml`)
-* Searchable `ComboBox` populated from `presets.json`.
-* Portion weight input in grams.
-* Live preview label showing calculated calories prior to logging:
-  $$\text{Calories} = \frac{\text{Grams} \times \text{cals\_per\_100g}}{100}$$
-* Multi-entry capability: clicking **"Add Meal"** appends to today's CSV and instantly increments the daily dashboard totals.
+*Later:* line chart of daily calories vs. a target line.
+
+### Diet
+* Food `ComboBox` (from `presets.json`)
+* Grams field
+* Live label: `Calories = grams × cals_per_100g / 100`
+* **Add Meal** button → appends to `diet.csv`, updates Dashboard
+* List of today's meals
+
+### Workouts
+* Workout `ComboBox` (from `presets.json`)
+* If `type == "timed"` → **Minutes** field
+* If `type == "strength"` → **Sets / Reps / Weight (kg)** fields
+* Intensity: Low / Moderate / High
+* **Add Workout** button → appends to `workouts.csv`
+* List of today's workouts
+
+### Profile
+* Weight, height, age, sex, activity level, goal
+* **Save** button → writes `user_profile.json`, recalculates the target
+
+---
+
+## 🛠️ Build Order
+
+Each step works on its own before moving on.
+
+| # | Step | What you learn |
+|---|------|----------------|
+| 1 | Create project (Qt Quick Application, Qt 6.11) and run an empty window | Project setup |
+| 2 | `Main.qml` with 4 empty tabs | TabBar + StackLayout |
+| 3 | `DietView.qml` with fake in-memory data (ComboBox, grams, live calories, list) | Core QML |
+| 4 | `DataManager` in C++, connect to QML, save/load `diet.csv` + `presets.json` | **C++ ↔ QML** (main learning goal) |
+| 5 | `WorkoutsView` (timed vs. strength fields) + `workouts.csv` | Conditional UI |
+| 6 | `ProfileCalculator` + `ProfileView` + `user_profile.json` | Logic + forms |
+| 7 | `DashboardView` + `MetricCard` | Binding to live data |
+| 8 | *(Later)* QtCharts history line chart, searchable combo | Polish |

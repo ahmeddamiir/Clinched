@@ -3,8 +3,22 @@
 **Clinched** is a simple single-user desktop app for fighters and athletes to log daily training and food intake, and compare calories against a personal daily target.
 
 * **Stack:** Qt 6.11 (Qt Quick / QML for the UI, C++ for the logic)
+* **Style:** Qt Quick Controls, Material (Dark)
 * **Build system:** CMake (Qt Creator 20)
 * **Storage:** no database. Two CSV logs + two JSON files.
+
+---
+
+## 📍 Project Status
+
+- [x] Step 1: Project setup
+- [x] Step 2: Main window with 4 tabs
+- [x] Step 3: Diet view with in-memory data
+- [ ] Step 4: `DataManager` (C++) + `diet.csv` + `presets.json`
+- [ ] Step 5: Workouts view + `workouts.csv`
+- [ ] Step 6: Profile view + calorie target
+- [ ] Step 7: Dashboard
+- [ ] Step 8: Polish (chart, searchable combo)
 
 ---
 
@@ -23,21 +37,32 @@
 
 ---
 
+## 🔨 Build & Run
+
+**Requirements:** Qt 6.10+ (developed on 6.11.2), Qt Creator, CMake.
+
+1. Open `CMakeLists.txt` in Qt Creator.
+2. Select a Desktop kit (e.g. MSVC 2022 64-bit).
+3. Press **Ctrl+R**.
+
+---
+
 ## 📂 Project Layout
 
 ```text
 Clinched/
 ├── CMakeLists.txt
-├── main.cpp                  # Starts the QML engine, registers DataManager
-├── datamanager.h / .cpp      # CSV read/write, presets, daily totals
-├── profilecalculator.h / .cpp# BMR, TDEE, calorie target
-├── Main.qml                  # Window + tab bar (4 tabs)
-├── DashboardView.qml         # Today's cards (+ chart later)
-├── DietView.qml              # Log meals
-├── WorkoutsView.qml          # Log workouts
-├── ProfileView.qml           # Edit body details + goal
-└── components/
-    └── MetricCard.qml        # Reusable card
+├── main.cpp                   # Starts the QML engine, sets Material style
+├── QML_FILES/
+│   ├── Main.qml               # Window + theme + tab bar (4 tabs)
+│   ├── DietView.qml           # Log meals
+│   ├── WorkoutsView.qml       # (planned) Log workouts
+│   ├── ProfileView.qml        # (planned) Body details + goal
+│   ├── DashboardView.qml      # (planned) Today's cards (+ chart later)
+│   └── components/
+│       └── MetricCard.qml     # (planned) Reusable card
+├── datamanager.h / .cpp       # (planned) CSV read/write, presets, daily totals
+└── profilecalculator.h / .cpp # (planned) BMR, TDEE, calorie target
 ```
 
 **Runtime files** (created automatically in the app data folder via `QStandardPaths::AppDataLocation`):
@@ -101,8 +126,8 @@ Add meal clicked → date = QDate::currentDate(), time = QTime::currentTime() �
 ### 1. `diet.csv`
 ```text
 Date,Time,Food,Grams,Calories
-2026-11-07,12:30:15,Chicken Breast (Cooked),200,330
-2026-11-07,21:10:04,White Rice (Cooked),150,195
+2026-11-07,12:30:15,Chicken Breast,200,330
+2026-11-07,21:10:04,White Rice,150,195
 ```
 `Calories = Grams × cals_per_100g / 100`
 
@@ -119,11 +144,11 @@ Each workout has a `type` that decides which input fields the UI shows.
 ```json
 {
   "foods": [
-    {"name": "Chicken Breast (Cooked)", "cals_per_100g": 165},
-    {"name": "White Rice (Cooked)",     "cals_per_100g": 130},
-    {"name": "Rolled Oats",             "cals_per_100g": 389},
-    {"name": "Whole Eggs",              "cals_per_100g": 143},
-    {"name": "Peanut Butter",           "cals_per_100g": 588}
+    {"name": "Chicken Breast", "cals_per_100g": 165},
+    {"name": "White Rice",     "cals_per_100g": 130},
+    {"name": "Rolled Oats",    "cals_per_100g": 389},
+    {"name": "Whole Eggs",     "cals_per_100g": 143},
+    {"name": "Peanut Butter",  "cals_per_100g": 588}
   ],
   "workouts": [
     {"name": "Wrestling / Grappling",            "type": "timed"},
@@ -172,6 +197,7 @@ Written by the Profile tab.
 
 ### Main window
 `TabBar` + `StackLayout` with 4 tabs: **Dashboard · Diet · Workouts · Profile**.
+Theme (dark, accent color) is set once in `Main.qml` via `Material.theme` and `Material.accent`.
 
 ### Dashboard
 Four `MetricCard`s:

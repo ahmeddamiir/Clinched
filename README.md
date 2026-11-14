@@ -2,23 +2,24 @@
 
 **Clinched** is a simple single-user desktop app for fighters and athletes to log daily training and food intake, and compare calories against a personal daily target.
 
-* **Stack:** Qt 6.11 (Qt Quick / QML for the UI, C++ for the logic)
-* **Style:** Qt Quick Controls, Material (Dark)
+* **Stack:** Qt 6.11, **Qt Widgets**, C++17
 * **Build system:** CMake (Qt Creator 20)
 * **Storage:** no database. Two CSV logs + two JSON files.
+
+> An earlier prototype built with Qt Quick/QML is kept on the `qml-prototype` branch.
 
 ---
 
 ## 📍 Project Status
 
-- [x] Step 1: Project setup
-- [x] Step 2: Main window with 4 tabs
-- [x] Step 3: Diet view with in-memory data
-- [ ] Step 4: `DataManager` (C++) + `diet.csv` + `presets.json`
-- [ ] Step 5: Workouts view + `workouts.csv`
-- [ ] Step 6: Profile view + calorie target
+- [ ] Step 1: Project setup (empty window)
+- [ ] Step 2: Main window with 4 tabs
+- [ ] Step 3: Diet tab with in-memory data
+- [ ] Step 4: `DataManager` + `diet.csv` + `presets.json`
+- [ ] Step 5: Workouts tab + `workouts.csv`
+- [ ] Step 6: Profile tab + calorie target
 - [ ] Step 7: Dashboard
-- [ ] Step 8: Polish (chart, searchable combo)
+- [ ] Step 8: Polish (chart, dark theme)
 
 ---
 
@@ -27,19 +28,19 @@
 **In scope (v1):**
 * Log meals (food + grams → calories)
 * Log workouts (timed or strength)
-* Profile screen → daily calorie target
+* Profile tab → daily calorie target
 * Dashboard with today's numbers
 
 **Later (after the semester):**
-* Line chart of history (QtCharts)
-* Searchable ComboBox
+* Line chart of history (Qt Charts)
+* Searchable food list
 * Edit/delete entries, unit tests, etc.
 
 ---
 
 ## 🔨 Build & Run
 
-**Requirements:** Qt 6.10+ (developed on 6.11.2), Qt Creator, CMake.
+**Requirements:** Qt 6.x (developed on 6.11.2), Qt Creator, CMake.
 
 1. Open `CMakeLists.txt` in Qt Creator.
 2. Select a Desktop kit (e.g. MSVC 2022 64-bit).
@@ -52,17 +53,15 @@
 ```text
 Clinched/
 ├── CMakeLists.txt
-├── main.cpp                   # Starts the QML engine, sets Material style
-├── QML_FILES/
-│   ├── Main.qml               # Window + theme + tab bar (4 tabs)
-│   ├── DietView.qml           # Log meals
-│   ├── WorkoutsView.qml       # (planned) Log workouts
-│   ├── ProfileView.qml        # (planned) Body details + goal
-│   ├── DashboardView.qml      # (planned) Today's cards (+ chart later)
-│   └── components/
-│       └── MetricCard.qml     # (planned) Reusable card
-├── datamanager.h / .cpp       # (planned) CSV read/write, presets, daily totals
-└── profilecalculator.h / .cpp # (planned) BMR, TDEE, calorie target
+├── main.cpp                     # Creates QApplication + MainWindow
+├── mainwindow.h / .cpp          # Window with QTabWidget, owns DataManager
+├── dashboardtab.h / .cpp        # (planned) Today's summary cards
+├── diettab.h / .cpp             # (planned) Log meals
+├── workoutstab.h / .cpp         # (planned) Log workouts
+├── profiletab.h / .cpp          # (planned) Body details + goal
+├── datamanager.h / .cpp         # (planned) CSV + JSON read/write, daily totals
+├── profilecalculator.h / .cpp   # (planned) BMR, TDEE, calorie target
+└── resources.qrc                # (planned) default presets.json
 ```
 
 **Runtime files** (created automatically in the app data folder via `QStandardPaths::AppDataLocation`):
@@ -74,34 +73,47 @@ presets.json        # foods + workouts list (editable, no recompiling)
 user_profile.json   # weight, height, age, sex, activity, goal
 ```
 
+A default `presets.json` is bundled in the app (Qt resource) and copied to the data folder on first run.
+
 ---
 
 ## 🧩 Architecture
 
-Two C++ classes, exposed to QML. QML never touches files directly.
+UI classes only show things and react to clicks. **All file work and math live in two non-UI classes.**
 
 ```text
-┌──────────────────────── QML (UI) ────────────────────────┐
-│  Dashboard   │   Diet   │   Workouts   │   Profile        │
-└──────┬───────────┬────────────┬──────────────┬───────────┘
-       │           │            │              │
-       ▼           ▼            ▼              ▼
-┌──────────────────────────┐   ┌─────────────────────────┐
-│       DataManager        │   │    ProfileCalculator    │
-│  - load presets.json     │   │  - BMR (Mifflin-St Jeor)│
-│  - addMeal()             │   │  - TDEE                 │
-│  - addWorkout()          │   │  - daily calorie target │
-│  - todayCalories()       │   └────────────┬────────────┘
-│  - todayMinutes()        │                │
-│  - load/save profile     │◄───────────────┘
-└────────────┬─────────────┘
-             ▼
-   diet.csv · workouts.csv · presets.json · user_profile.json
+                    ┌──────────────────────┐
+                    │      MainWindow      │
+                    │   (QTabWidget, owns  │
+                    │     DataManager)     │
+                    └──────────┬───────────┘
+       ┌───────────────┬───────┴───────┬───────────────┐
+       ▼               ▼               ▼               ▼
+ ┌───────────┐   ┌───────────┐   ┌────────────┐   ┌───────────┐
+ │ Dashboard │   │  DietTab  │   │ WorkoutsTab│   │ ProfileTab│
+ │   Tab     │   │           │   │            │   │           │
+ └─────▲─────┘   └─────┬─────┘   └──────┬─────┘   └─────┬─────┘
+       │ dataChanged   │ addMeal()      │ addWorkout()  │ saveProfile()
+       │ (signal)      ▼                ▼               ▼
+       │        ┌─────────────────────────────────────────┐
+       └────────│               DataManager               │
+                │  - load presets.json                    │
+                │  - addMeal() / addWorkout()             │
+                │  - todayCalories() / todayMinutes()     │
+                │  - load/save user_profile.json          │
+                └───────┬─────────────────────┬───────────┘
+                        ▼                     ▼
+          diet.csv · workouts.csv      ProfileCalculator
+          presets.json · user_profile  (BMR, TDEE, target;
+                                        pure math)
 ```
 
+**How tabs stay in sync (signals & slots):**
+`DataManager` emits `dataChanged()` whenever a meal/workout/profile is saved. `DashboardTab` connects to that signal and refreshes its labels. Tabs never talk to each other directly.
+
 **Roles:**
-* **QML** = what the user sees and clicks.
-* **DataManager** = reads/writes files, filters by date, sums totals.
+* **Tabs (QWidget subclasses)** = layouts, inputs, buttons.
+* **DataManager (QObject)** = reads/writes files, filters by date, sums totals, emits signals.
 * **ProfileCalculator** = pure math, no file access.
 
 ---
@@ -111,7 +123,7 @@ Two C++ classes, exposed to QML. QML never touches files directly.
 The app doesn't "remember" the day. **Every row stores its own date** at the moment it is logged:
 
 ```text
-Add meal clicked → date = QDate::currentDate(), time = QTime::currentTime() → append row
+Add Meal clicked → date = QDate::currentDate(), time = QTime::currentTime() → append row
 ```
 
 * Log lunch, close the app, reopen at night, log dinner → both rows have today's date automatically.
@@ -140,7 +152,7 @@ Date,Time,Workout,Minutes,Sets,Reps,WeightKg,Intensity
 ```
 
 ### 3. `presets.json`
-Each workout has a `type` that decides which input fields the UI shows.
+Each workout has a `type` that decides which inputs the UI shows.
 ```json
 {
   "foods": [
@@ -196,35 +208,34 @@ Written by the Profile tab.
 ## 🖥️ Screens
 
 ### Main window
-`TabBar` + `StackLayout` with 4 tabs: **Dashboard · Diet · Workouts · Profile**.
-Theme (dark, accent color) is set once in `Main.qml` via `Material.theme` and `Material.accent`.
+`QMainWindow` with a `QTabWidget`: **Dashboard · Diet · Workouts · Profile**.
 
-### Dashboard
-Four `MetricCard`s:
+### Dashboard (`DashboardTab`)
+Four summary cards (`QGroupBox` + `QLabel`):
 * **Daily Target** (from profile)
 * **Consumed Today** (sum of today's calories)
 * **Remaining** (Target − Consumed)
 * **Training Today** (total minutes + number of strength sessions)
 
-*Later:* line chart of daily calories vs. a target line.
+*Later:* line chart of daily calories vs. a target line (`QChartView`).
 
-### Diet
-* Food `ComboBox` (from `presets.json`)
-* Grams field
-* Live label: `Calories = grams × cals_per_100g / 100`
-* **Add Meal** button → appends to `diet.csv`, updates Dashboard
-* List of today's meals
+### Diet (`DietTab`)
+* Food `QComboBox` (from `presets.json`)
+* Grams `QSpinBox`
+* Live `QLabel`: `Calories = grams × cals_per_100g / 100`
+* **Add Meal** `QPushButton` → appends to `diet.csv`, emits `dataChanged()`
+* `QTableWidget` of today's meals
 
-### Workouts
-* Workout `ComboBox` (from `presets.json`)
+### Workouts (`WorkoutsTab`)
+* Workout `QComboBox` (from `presets.json`)
 * If `type == "timed"` → **Minutes** field
 * If `type == "strength"` → **Sets / Reps / Weight (kg)** fields
 * Intensity: Low / Moderate / High
 * **Add Workout** button → appends to `workouts.csv`
-* List of today's workouts
+* `QTableWidget` of today's workouts
 
-### Profile
-* Weight, height, age, sex, activity level, goal
+### Profile (`ProfileTab`)
+* Weight, height, age, sex, activity level, goal (`QFormLayout`)
 * **Save** button → writes `user_profile.json`, recalculates the target
 
 ---
@@ -235,11 +246,11 @@ Each step works on its own before moving on.
 
 | # | Step | What you learn |
 |---|------|----------------|
-| 1 | Create project (Qt Quick Application, Qt 6.11) and run an empty window | Project setup |
-| 2 | `Main.qml` with 4 empty tabs | TabBar + StackLayout |
-| 3 | `DietView.qml` with fake in-memory data (ComboBox, grams, live calories, list) | Core QML |
-| 4 | `DataManager` in C++, connect to QML, save/load `diet.csv` + `presets.json` | **C++ ↔ QML** (main learning goal) |
-| 5 | `WorkoutsView` (timed vs. strength fields) + `workouts.csv` | Conditional UI |
-| 6 | `ProfileCalculator` + `ProfileView` + `user_profile.json` | Logic + forms |
-| 7 | `DashboardView` + `MetricCard` | Binding to live data |
-| 8 | *(Later)* QtCharts history line chart, searchable combo | Polish |
+| 1 | Create project (Qt Widgets Application, CMake) and run an empty window | Project setup |
+| 2 | `MainWindow` with `QTabWidget` and 4 empty tabs | Tabs, layouts |
+| 3 | `DietTab` with fake in-memory data (combo, spin box, live calories, table) | Widgets, signals & slots |
+| 4 | `DataManager`: save/load `diet.csv` + `presets.json` | File I/O, QJson, custom signals |
+| 5 | `WorkoutsTab` (timed vs. strength fields) + `workouts.csv` | Showing/hiding widgets |
+| 6 | `ProfileCalculator` + `ProfileTab` + `user_profile.json` | Logic + forms |
+| 7 | `DashboardTab` listening to `dataChanged()` | Keeping tabs in sync |
+| 8 | *(Later)* Qt Charts history chart, Fusion dark theme | Polish |

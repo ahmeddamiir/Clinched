@@ -12,8 +12,8 @@
 
 ## 📍 Project Status
 
-- [ ] Step 1: Project setup (empty window)
-- [ ] Step 2: Main window with 4 tabs
+- [x] Step 1: Project setup (empty window)
+- [x] Step 2: Main window with 4 tabs
 - [ ] Step 3: Diet tab with in-memory data
 - [ ] Step 4: `DataManager` + `diet.csv` + `presets.json`
 - [ ] Step 5: Workouts tab + `workouts.csv`

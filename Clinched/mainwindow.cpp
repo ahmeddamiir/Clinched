@@ -1,10 +1,13 @@
 #include "mainwindow.h"
+
 #include <QAction>
 #include <QLabel>
 #include <QMenu>
 #include <QMenuBar>
 #include <QMessageBox>
 #include <QTabWidget>
+
+#include "diettab.h"
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -25,11 +28,10 @@ void MainWindow::createTabs()
     auto *dietPage = new QLabel("Diet page");
     auto *workoutsPage = new QLabel("Workouts page");
     dashboardPage->setAlignment(Qt::AlignCenter);
-    dietPage->setAlignment(Qt::AlignCenter);
     workoutsPage->setAlignment(Qt::AlignCenter);
 
     m_tabs->addTab(dashboardPage, "Dashboard");
-    m_tabs->addTab(dietPage, "Diet");
+    m_tabs->addTab(new DietTab, "Diet");
     m_tabs->addTab(workoutsPage, "Workouts");
 
     setCentralWidget(m_tabs);

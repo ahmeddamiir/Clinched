@@ -22,4 +22,4 @@ private:
     QTabWidget *m_tabs;
 };
 
-#endif
+#endif // MAINWINDOW_H

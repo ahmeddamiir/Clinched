@@ -10,6 +10,7 @@ qt_add_executable(Clinched
     main.cpp
     mainwindow.cpp
     mainwindow.h
+    diettab.h diettab.cpp
 )
 
 target_link_libraries(Clinched

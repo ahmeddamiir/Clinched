@@ -14,7 +14,7 @@
 
 - [x] Step 1: Project setup (empty window)
 - [x] Step 2: Main window with 4 tabs
-- [ ] Step 3: Diet tab with in-memory data
+- [x] Step 3: Diet tab with in-memory data
 - [ ] Step 4: `DataManager` + `diet.csv` + `presets.json`
 - [ ] Step 5: Workouts tab + `workouts.csv`
 - [ ] Step 6: Profile tab + calorie target
@@ -56,7 +56,7 @@ Clinched/
 ├── main.cpp                     # Creates QApplication + MainWindow
 ├── mainwindow.h / .cpp          # Window with QTabWidget, owns DataManager
 ├── dashboardtab.h / .cpp        # (planned) Today's summary cards
-├── diettab.h / .cpp             # (planned) Log meals
+├── diettab.h / .cpp             # Log meals + live calorie calculation (in-memory)
 ├── workoutstab.h / .cpp         # (planned) Log workouts
 ├── profiletab.h / .cpp          # (planned) Body details + goal
 ├── datamanager.h / .cpp         # (planned) CSV + JSON read/write, daily totals

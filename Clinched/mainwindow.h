@@ -4,6 +4,7 @@
 #include <QMainWindow>
 
 class QTabWidget;
+class DataManager;
 
 class MainWindow : public QMainWindow
 {
@@ -20,6 +21,8 @@ private:
     void createMenus();
 
     QTabWidget *m_tabs;
+
+    DataManager *m_data;
 };
 
 #endif // MAINWINDOW_H

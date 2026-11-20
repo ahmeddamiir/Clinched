@@ -1,4 +1,6 @@
 #include "mainwindow.h"
+#include "datamanager.h"
+#include "diettab.h"
 
 #include <QAction>
 #include <QLabel>
@@ -7,13 +9,13 @@
 #include <QMessageBox>
 #include <QTabWidget>
 
-#include "diettab.h"
-
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
 {
     setWindowTitle("Clinched");
     resize(800, 600);
+
+    m_data = new DataManager(this);
 
     createTabs();
     createMenus();
@@ -25,13 +27,12 @@ void MainWindow::createTabs()
 
     // Temporary pages: each is just a centered label for now
     auto *dashboardPage = new QLabel("Dashboard page");
-    auto *dietPage = new QLabel("Diet page");
     auto *workoutsPage = new QLabel("Workouts page");
     dashboardPage->setAlignment(Qt::AlignCenter);
     workoutsPage->setAlignment(Qt::AlignCenter);
 
     m_tabs->addTab(dashboardPage, "Dashboard");
-    m_tabs->addTab(new DietTab, "Diet");
+    m_tabs->addTab(new DietTab(m_data), "Diet");
     m_tabs->addTab(workoutsPage, "Workouts");
 
     setCentralWidget(m_tabs);

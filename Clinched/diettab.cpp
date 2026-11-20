@@ -1,5 +1,7 @@
 #include "diettab.h"
+#include "datamanager.h"
 
+#include <QDate>
 #include <QComboBox>
 #include <QHBoxLayout>
 #include <QVBoxLayout>
@@ -9,8 +11,8 @@
 #include <QSpinBox>
 #include <QTableWidget>
 
-DietTab::DietTab(QWidget *parent)
-    : QWidget{parent}
+DietTab::DietTab(DataManager *dataManager, QWidget *parent)
+    : QWidget{parent}, m_data(dataManager)
 {
     loadFoods();
     buildUi();
@@ -49,8 +51,8 @@ void DietTab::buildUi()
     m_addButton = new QPushButton("Add Meal");
     m_totalLabel = new QLabel;
 
-    m_table = new QTableWidget(0, 3);
-    m_table->setHorizontalHeaderLabels({"Food", "Grams", "Calories"});
+    m_table = new QTableWidget(0, 4);
+    m_table->setHorizontalHeaderLabels({"Time", "Food", "Grams", "Calories"});
     m_table->setEditTriggers(QAbstractItemView::NoEditTriggers);
     m_table->horizontalHeader()->setStretchLastSection(true);
     m_table->verticalHeader()->setVisible(false);
@@ -68,14 +70,15 @@ void DietTab::buildUi()
     mainLayout->addWidget(m_totalLabel);
     mainLayout->addWidget(m_table);
 
-    // ---- Connect Singals to slots ----
+    // ---- Connect Signals to slots ----
     connect(m_foodCombo, &QComboBox::currentIndexChanged, this, &DietTab::updatePreview);
     connect(m_gramsSpin, &QSpinBox::valueChanged, this, &DietTab::updatePreview);
     connect(m_addButton, &QPushButton::clicked, this, &DietTab::addMeal);
+    connect(m_data, &DataManager::dataChanged, this, &DietTab::refreshMeals);
 
     // ---- Initial state ----
     updatePreview();
-    refreshTotal();
+    refreshMeals();
 }
 
 int DietTab::caloriesFor(int foodIndex, int grams) const
@@ -99,21 +102,26 @@ void DietTab::addMeal()
     const int grams = m_gramsSpin->value();
     const int cals = caloriesFor(m_foodCombo->currentIndex(), grams);
 
-    const int row = m_table->rowCount();
-    m_table->insertRow(row);
-    m_table->setItem(row, 0, new QTableWidgetItem(name));
-    m_table->setItem(row, 1, new QTableWidgetItem(QString::number(grams)));
-    m_table->setItem(row, 2, new QTableWidgetItem(QString::number(cals)));
-
-    m_totalCalories += cals;
-    refreshTotal();
-
+    m_data->addMeal(name, grams, cals);
     m_gramsSpin->setValue(0);
-
 }
 
-void DietTab::refreshTotal()
+void DietTab::refreshMeals()
 {
-    m_totalLabel->setText(QString("Total today: %1 kcal").arg(m_totalCalories));
-}
+    const QList<MealEntry> meals = m_data->mealsForDate(QDate::currentDate());
 
+    m_table->setRowCount(0);
+    int total = 0;
+
+    for (const MealEntry &meal : meals) {
+        const int row = m_table->rowCount();
+        m_table->insertRow(row);
+        m_table->setItem(row, 0, new QTableWidgetItem(meal.time.toString("HH:mm")));
+        m_table->setItem(row, 1, new QTableWidgetItem(meal.food));
+        m_table->setItem(row, 2, new QTableWidgetItem(QString::number(meal.grams)));
+        m_table->setItem(row, 3, new QTableWidgetItem(QString::number(meal.calories)));
+        total+=meal.calories;
+    }
+
+    m_totalLabel->setText(QString("Total today: %1 kcal").arg(total));
+}

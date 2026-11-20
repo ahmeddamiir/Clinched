@@ -10,17 +10,19 @@ class QLabel;
 class QPushButton;
 class QSpinBox;
 class QTableWidget;
+class DataManager;
 
 class DietTab : public QWidget
 {
     Q_OBJECT
 
 public:
-    explicit DietTab(QWidget *parent = nullptr);
+    explicit DietTab(DataManager *dataManager, QWidget *parent = nullptr);
 
 private slots:
     void updatePreview(); // recalculates the live calories label
-    void addMeal(); // adds the current selection to the table
+    void addMeal(); // adds the current selection to the DataManager
+    void refreshMeals(); // reloads today's meals into the table
 
 private:
     struct Food {
@@ -30,11 +32,10 @@ private:
 
 void loadFoods();
 void buildUi();
-void refreshTotal();
 int caloriesFor(int foodIndex, int grams) const;
 
+DataManager *m_data;
 QList<Food> m_foods;
-int m_totalCalories = 0;
 
 QComboBox *m_foodCombo;
 QSpinBox *m_gramsSpin;

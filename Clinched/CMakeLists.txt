@@ -11,6 +11,7 @@ qt_add_executable(Clinched
     mainwindow.cpp
     mainwindow.h
     diettab.h diettab.cpp
+    datamanager.h datamanager.cpp
 )
 
 target_link_libraries(Clinched

@@ -108,12 +108,12 @@ void DietTab::addMeal()
 
 void DietTab::refreshMeals()
 {
-    const QList<MealEntry> meals = m_data->mealsForDate(QDate::currentDate());
+    const QList<Meal> meals = m_data->mealsForDate(QDate::currentDate());
 
     m_table->setRowCount(0);
     int total = 0;
 
-    for (const MealEntry &meal : meals) {
+    for (const Meal &meal : meals) {
         const int row = m_table->rowCount();
         m_table->insertRow(row);
         m_table->setItem(row, 0, new QTableWidgetItem(meal.time.toString("HH:mm")));

@@ -52,9 +52,9 @@ void DataManager::addMeal(const QString &food, int grams, int calories)
     emit dataChanged(); // A signal to the other tabs that we have a new record
 }
 
-QList<MealEntry> DataManager::mealsForDate(const QDate &date) const
+QList<Meal> DataManager::mealsForDate(const QDate &date) const
 {
-    QList<MealEntry> result;
+    QList<Meal> result;
 
     QFile file(dietFilePath());
     if (!file.open(QIODevice::Text | QIODevice::ReadOnly)) {
@@ -80,7 +80,7 @@ QList<MealEntry> DataManager::mealsForDate(const QDate &date) const
         const QDate rowDate = QDate::fromString(fields[0], Qt::ISODate);
         if (rowDate != date) continue;
 
-        MealEntry entry;
+        Meal entry;
         entry.date = rowDate;
         entry.time = QTime::fromString(fields[1], "HH:mm:ss");
         entry.food = fields[2];

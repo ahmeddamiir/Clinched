@@ -8,7 +8,7 @@
 #include <QTime>
 
 // One row of diet.csv
-struct MealEntry
+struct Meal
 {
     QDate date;
     QTime time;
@@ -25,7 +25,7 @@ public:
     explicit DataManager(QObject *parent = nullptr);
 
     void addMeal(const QString &food, int grams, int calories);
-    QList<MealEntry> mealsForDate(const QDate &date) const;
+    QList<Meal> mealsForDate(const QDate &date) const;
 
 signals:
     void dataChanged(); // emitted after anything is saved

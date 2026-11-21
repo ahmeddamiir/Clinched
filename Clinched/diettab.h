@@ -11,6 +11,7 @@ class QPushButton;
 class QSpinBox;
 class QTableWidget;
 class DataManager;
+struct Meal;
 
 class DietTab : public QWidget
 {
@@ -30,8 +31,10 @@ private:
         int calsPer100g;
     };
 
+
 void loadFoods();
 void buildUi();
+void appendMealRecord(const Meal &meal);
 int caloriesFor(int foodIndex, int grams) const;
 
 DataManager *m_data;

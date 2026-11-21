@@ -117,14 +117,19 @@ void DietTab::refreshMeals()
     const int numberOfMeals = meals.count();
     for (int i = numberOfMeals-1; i >= 0; i--)
     {
-        const int row = m_table->rowCount();
-        m_table->insertRow(row);
-        m_table->setItem(row, 0, new QTableWidgetItem(meals[i].time.toString("HH:mm")));
-        m_table->setItem(row, 1, new QTableWidgetItem(meals[i].food));
-        m_table->setItem(row, 2, new QTableWidgetItem(QString::number(meals[i].grams)));
-        m_table->setItem(row, 3, new QTableWidgetItem(QString::number(meals[i].calories)));
+        appendMealRecord(meals[i]);
         total+=meals[i].calories;
     }
 
     m_totalLabel->setText(QString("Total today: %1 kcal").arg(total));
+}
+
+void DietTab::appendMealRecord(const Meal &meal)
+{
+    const int row = m_table->rowCount();
+    m_table->insertRow(row);
+    m_table->setItem(row, 0, new QTableWidgetItem(meal.time.toString("HH:mm")));
+    m_table->setItem(row, 1, new QTableWidgetItem(meal.food));
+    m_table->setItem(row, 2, new QTableWidgetItem(QString::number(meal.grams)));
+    m_table->setItem(row, 3, new QTableWidgetItem(QString::number(meal.calories)));
 }

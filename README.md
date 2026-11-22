@@ -16,13 +16,13 @@
 
 * \[x\] Step 3: Diet tab with in-memory data
 
-* \[ \] Step 4: `DataManager`
+* \[x\] Step 4: `DataManager`
 
   * \[x\] 4a: Meals saved and loaded from a file
 
   * \[x\] 4b: Meals stored as JSON (`diet.json`)
 
-  * \[ \] 4c: Foods loaded from `presets.json`
+  * \[x\] 4c: Foods loaded from `presets.json`
 
 * \[ \] Step 5: Workouts tab + `workouts.json`
 
@@ -77,8 +77,7 @@ Clinched/                          # repo root
     ├── profiledialog.h / .cpp     # (planned) Body details + goal
     ├── datamanager.h / .cpp       # JSON read/write, date filtering, dataChanged() signal
     ├── profilecalculator.h / .cpp # (planned) BMR, TDEE, calorie target
-    ├── presets.json               # (planned) default foods/workouts (Qt resource)
-    └── resources.qrc              # (planned) Qt resource file
+    └── presets.json               # (planned) default foods/workouts (Qt resource)
 
 ```
 

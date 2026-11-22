@@ -36,11 +36,11 @@ void DataManager::addMeal(const QString &food, int grams, int calories)
     meal["calories"] = calories;
 
     // Load all old meals and add the new one
-    QJsonArray meals = readArray("diet.json");
+    QJsonArray meals = readDocument("diet.json").array();
     meals.append(meal);
 
     // Save/Write everything back
-    if (writeArray("diet.json", meals))
+    if (writeDocument("diet.json", QJsonDocument(meals)))
         emit dataChanged(); // A signal to the other tabs that we have a new record
 }
 
@@ -48,7 +48,7 @@ QList<Meal> DataManager::mealsForDate(const QDate &date) const
 {
     QList<Meal> result;
 
-    const auto meals = readArray("diet.json");
+    const auto meals = readDocument("diet.json").array();
     for (const auto &value : meals) {
         const auto obj = value.toObject();
 
@@ -79,19 +79,18 @@ int DataManager::caloriesForDate(const QDate &date) const
     return totalCalories;
 }
 
-QJsonArray DataManager::readArray(const QString &fileName) const
+QJsonDocument DataManager::readDocument(const QString &fileName) const
 {
     QFile file(filePath(fileName));
     if (!file.open(QIODevice::ReadOnly)) {
-        return QJsonArray(); // No files yet = nothing is saved yet!
+        return QJsonDocument(); // No file yet = empty document
     }
 
-    const auto doc = QJsonDocument::fromJson(file.readAll());
-    return doc.array(); // Empty array if the file is empty or damaged
+    return QJsonDocument::fromJson(file.readAll()); // null document if damaged
 }
 
 
-bool DataManager::writeArray(const QString &fileName, const QJsonArray &array) const
+bool DataManager::writeDocument(const QString &fileName, const QJsonDocument &doc) const
 {
     QSaveFile file(filePath(fileName));
     if (!file.open(QIODevice::WriteOnly)) {
@@ -99,6 +98,6 @@ bool DataManager::writeArray(const QString &fileName, const QJsonArray &array) c
         return false;
     }
 
-    file.write(QJsonDocument(array).toJson(QJsonDocument::Indented));
+    file.write(doc.toJson(QJsonDocument::Indented));
     return file.commit();
 }

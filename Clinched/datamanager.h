@@ -7,7 +7,7 @@
 #include <QString>
 #include <QTime>
 
-class QJsonArray;
+class QJsonDocument;
 
 // One record of diet.json
 struct Meal
@@ -35,8 +35,8 @@ signals:
 
 private:
     QString filePath(const QString &fileName) const;
-    QJsonArray readArray(const QString &fileName) const;
-    bool writeArray(const QString &fileName, const QJsonArray &array) const;
+    QJsonDocument readArray(const QString &fileName) const;
+    bool writeArray(const QString &fileName, const QJsonDocument &array) const;
 };
 
 #endif // DATAMANAGER_H

@@ -1,6 +1,8 @@
 #ifndef DIETTAB_H
 #define DIETTAB_H
 
+#include "datamanager.h"
+
 #include <QList>
 #include <QString>
 #include <QWidget>
@@ -10,8 +12,6 @@ class QLabel;
 class QPushButton;
 class QSpinBox;
 class QTableWidget;
-class DataManager;
-struct Meal;
 
 class DietTab : public QWidget
 {
@@ -26,13 +26,7 @@ private slots:
     void refreshMeals(); // reloads today's meals into the table
 
 private:
-    struct Food {
-        QString name;
-        int calsPer100g;
-    };
 
-
-void loadFoods();
 void buildUi();
 void appendMealRecord(const Meal &meal);
 int caloriesFor(int foodIndex, int grams) const;

@@ -80,6 +80,27 @@ int DataManager::caloriesForDate(const QDate &date) const
     return totalCalories;
 }
 
+QList<Food> DataManager::foods() const
+{
+    QList<Food> result;
+
+    const QJsonObject root = readDocument("presets.json").object();
+    const QJsonArray foodArray = root["foods"].toArray();
+
+    for (const QJsonValue &value : foodArray) {
+        const auto obj = value.toObject();
+
+        Food food;
+        food.name = obj["name"].toString();
+        food.calsPer100g = obj["cals_per_100g"].toInt();
+
+        if (!food.name.isEmpty())
+            result.append(food);
+    }
+
+    return result;
+}
+
 QJsonDocument DataManager::readDocument(const QString &fileName) const
 {
     QFile file(filePath(fileName));

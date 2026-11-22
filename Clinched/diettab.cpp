@@ -10,24 +10,13 @@
 #include <QPushButton>
 #include <QSpinBox>
 #include <QTableWidget>
+#include <QShortcut>
 
 DietTab::DietTab(DataManager *dataManager, QWidget *parent)
     : QWidget{parent}, m_data(dataManager)
 {
-    loadFoods();
+    m_foods = m_data->foods();
     buildUi();
-}
-
-void DietTab::loadFoods()
-{
-    // Temporary hard-coded data. In step 4 this comes from presets.json
-    m_foods = {
-        {"Chicken Breast", 165},
-        {"White Rice",     130},
-        {"Rolled Oats",    389},
-        {"Whole Eggs",     143},
-        {"Peanut Butter",  588},
-    };
 }
 
 void DietTab::buildUi()
@@ -83,6 +72,9 @@ void DietTab::buildUi()
 
 int DietTab::caloriesFor(int foodIndex, int grams) const
 {
+    if (foodIndex < 0 || foodIndex >= m_foods.size())
+        return 0; // no foods loaded
+
     const Food &food = m_foods.at(foodIndex);
     return qRound(grams * food.calsPer100g / 100.0);
 }
@@ -93,7 +85,7 @@ void DietTab::updatePreview()
     const int cals = caloriesFor(m_foodCombo->currentIndex(), grams);
 
     m_previewLabel->setText(QString("Calories: %1 kcal").arg(cals));
-    m_addButton->setEnabled(grams > 0);
+    m_addButton->setEnabled(grams > 0 && !m_foods.isEmpty());
 }
 
 void DietTab::addMeal()

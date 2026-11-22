@@ -19,6 +19,12 @@ struct Meal
     int calories = 0;
 };
 
+// One food from presets.json
+struct Food {
+    QString name;
+    int calsPer100g = 0;
+};
+
 class DataManager : public QObject
 {
     Q_OBJECT
@@ -29,6 +35,7 @@ public:
     void addMeal(const QString &food, int grams, int calories);
     QList<Meal> mealsForDate(const QDate &date) const;
     int caloriesForDate(const QDate &date) const;
+    QList<Food> foods() const;
 
 signals:
     void dataChanged(); // emitted after anything is saved
@@ -36,7 +43,7 @@ signals:
 private:
     QString filePath(const QString &fileName) const;
     QJsonDocument readDocument(const QString &fileName) const;
-    bool writeDocument(const QString &fileName, const QJsonDocument &array) const;
+    bool writeDocument(const QString &fileName, const QJsonDocument &doc) const;
     void ensurePresetsFile() const;
 };
 

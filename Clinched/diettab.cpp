@@ -26,7 +26,7 @@ void DietTab::loadFoods()
         {"White Rice",     130},
         {"Rolled Oats",    389},
         {"Whole Eggs",     143},
-        {"Peanut Butter",  588}
+        {"Peanut Butter",  588},
     };
 }
 

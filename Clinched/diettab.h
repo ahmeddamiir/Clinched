@@ -47,8 +47,6 @@ QPushButton *m_addButton;
 QLabel *m_totalLabel;
 QTableWidget *m_table;
 
-signals:
-
 };
 
 #endif // DIETTAB_H

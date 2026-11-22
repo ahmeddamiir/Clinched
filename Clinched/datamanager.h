@@ -35,8 +35,9 @@ signals:
 
 private:
     QString filePath(const QString &fileName) const;
-    QJsonDocument readArray(const QString &fileName) const;
-    bool writeArray(const QString &fileName, const QJsonDocument &array) const;
+    QJsonDocument readDocument(const QString &fileName) const;
+    bool writeDocument(const QString &fileName, const QJsonDocument &array) const;
+    void ensurePresetsFile() const;
 };
 
 #endif // DATAMANAGER_H

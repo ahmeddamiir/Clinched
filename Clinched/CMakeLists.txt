@@ -12,6 +12,8 @@ qt_add_executable(Clinched
     mainwindow.h
     diettab.h diettab.cpp
     datamanager.h datamanager.cpp
+    presets.json
+    resources.qrc
 )
 
 target_link_libraries(Clinched

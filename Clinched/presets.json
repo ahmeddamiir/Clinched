@@ -1,0 +1,18 @@
+{
+  "foods": [
+    {"name": "Chicken Breast", "cals_per_100g": 165},
+    {"name": "White Rice",     "cals_per_100g": 130},
+    {"name": "Rolled Oats",    "cals_per_100g": 389},
+    {"name": "Whole Eggs",     "cals_per_100g": 143},
+    {"name": "Peanut Butter",  "cals_per_100g": 588}
+  ],
+  "workouts": [
+    {"name": "Wrestling / Grappling",            "type": "timed"},
+    {"name": "MMA Sparring",                     "type": "timed"},
+    {"name": "Muay Thai / Striking",             "type": "timed"},
+    {"name": "Roadwork / Conditioning",          "type": "timed"},
+    {"name": "Strength: Push Focus",             "type": "strength"},
+    {"name": "Strength: Pull Focus",             "type": "strength"},
+    {"name": "Strength: Legs / Posterior Chain", "type": "strength"}
+  ]
+}

@@ -17,6 +17,7 @@ DataManager::DataManager(QObject *parent)
     QDir().mkpath(folder);
 
     qDebug() << "Data folder:" << folder; // temporary: shows where the files are
+    ensurePresetsFile();
 }
 
 // Helper function returns the path if needed (as QString)
@@ -100,4 +101,18 @@ bool DataManager::writeDocument(const QString &fileName, const QJsonDocument &do
 
     file.write(doc.toJson(QJsonDocument::Indented));
     return file.commit();
+}
+
+void DataManager::ensurePresetsFile() const
+{
+    const QString target = filePath("presets.json");
+    if (QFile::exists(target)) return; // keep the user's own copy
+
+    if (!QFile::copy(":/presets.json", target)) {
+        qWarning() << "Couldn't create" << target;
+        return;
+    }
+
+    // Files copied out of a Qt resources are read-only, so make it writable
+    QFile::setPermissions(target, QFile::ReadOwner | QFile::WriteOwner);
 }

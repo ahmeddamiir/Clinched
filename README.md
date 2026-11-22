@@ -6,7 +6,7 @@
 
 * **Build system:** CMake (Qt Creator 20)
 
-* **Storage:** no database. Two CSV logs + two JSON files.
+* **Storage:** no database. Everything is stored in plain **JSON** files.
 
 ## 📍 Project Status
 
@@ -16,11 +16,17 @@
 
 * \[x\] Step 3: Diet tab with in-memory data
 
-* \[ \] Step 4: `DataManager` + `diet.csv` *(done)* + `presets.json` *(in progress)*
+* \[ \] Step 4: `DataManager`
 
-* \[ \] Step 5: Workouts tab + `workouts.csv`
+  * \[x\] 4a: Meals saved and loaded from a file
 
-* \[ \] Step 6: Profile tab + calorie target
+  * \[x\] 4b: Meals stored as JSON (`diet.json`)
+
+  * \[ \] 4c: Foods loaded from `presets.json`
+
+* \[ \] Step 5: Workouts tab + `workouts.json`
+
+* \[ \] Step 6: Profile dialog + calorie target
 
 * \[ \] Step 7: Dashboard
 
@@ -34,7 +40,7 @@
 
 * Log workouts (timed or strength)
 
-* Profile tab → daily calorie target
+* Profile dialog → daily calorie target
 
 * Dashboard with today's numbers
 
@@ -50,7 +56,7 @@
 
 **Requirements:** Qt 6.x (developed on 6.11.2), Qt Creator, CMake.
 
-1. Open `CMakeLists.txt` in Qt Creator.
+1. Open `Clinched/CMakeLists.txt` in Qt Creator.
 
 2. Select a Desktop kit (e.g. MSVC 2022 64-bit).
 
@@ -59,25 +65,28 @@
 ## 📂 Project Layout
 
 ```
-Clinched/
-├── CMakeLists.txt
-├── main.cpp                     # Creates QApplication + MainWindow
-├── mainwindow.h / .cpp          # Window with QTabWidget, owns DataManager
-├── dashboardtab.h / .cpp        # (planned) Today's summary cards
-├── diettab.h / .cpp             # Log meals, live calorie preview, today's meals table
-├── workoutstab.h / .cpp         # (planned) Log workouts
-├── profiletab.h / .cpp          # (planned) Body details + goal
-├── datamanager.h / .cpp         # diet.csv persistence & date filtering (presets.json next)
-├── profilecalculator.h / .cpp   # (planned) BMR, TDEE, calorie target
-└── resources.qrc                # (planned) default presets.json
+Clinched/                          # repo root
+├── README.md
+└── Clinched/                      # Qt project folder
+    ├── CMakeLists.txt
+    ├── main.cpp                   # Creates QApplication + MainWindow
+    ├── mainwindow.h / .cpp        # Window with QTabWidget, owns DataManager
+    ├── dashboardtab.h / .cpp      # (planned) Today's summary cards
+    ├── diettab.h / .cpp           # Log meals, live calorie preview, today's meals table
+    ├── workoutstab.h / .cpp       # (planned) Log workouts
+    ├── profiledialog.h / .cpp     # (planned) Body details + goal
+    ├── datamanager.h / .cpp       # JSON read/write, date filtering, dataChanged() signal
+    ├── profilecalculator.h / .cpp # (planned) BMR, TDEE, calorie target
+    ├── presets.json               # (planned) default foods/workouts (Qt resource)
+    └── resources.qrc              # (planned) Qt resource file
 
 ```
 
 **Runtime files** (created automatically in the app data folder via `QStandardPaths::AppDataLocation`):
 
 ```
-diet.csv            # every meal ever logged, one row per meal
-workouts.csv        # every workout ever logged, one row per workout
+diet.json           # every meal ever logged
+workouts.json       # every workout ever logged
 presets.json        # foods + workouts list (editable, no recompiling)
 user_profile.json   # weight, height, age, sex, activity, goal
 
@@ -98,8 +107,8 @@ UI classes only show things and react to clicks. **All file work and math live i
        ┌───────────────┬───────┴───────┬───────────────┐
        ▼               ▼               ▼               ▼
  ┌───────────┐   ┌───────────┐   ┌────────────┐   ┌───────────┐
- │ Dashboard │   │  DietTab  │   │ WorkoutsTab│   │ ProfileTab│
- │   Tab     │   │           │   │            │   │           │
+ │ Dashboard │   │  DietTab  │   │ WorkoutsTab│   │  Profile  │
+ │   Tab     │   │           │   │            │   │  Dialog   │
  └─────▲─────┘   └─────┬─────┘   └──────┬─────┘   └─────┬─────┘
        │ dataChanged   │ addMeal()      │ addWorkout()  │ saveProfile()
        │ (signal)      ▼                ▼               ▼
@@ -107,11 +116,11 @@ UI classes only show things and react to clicks. **All file work and math live i
        └────────│               DataManager               │
                 │  - load presets.json                    │
                 │  - addMeal() / addWorkout()             │
-                │  - todayCalories() / todayMinutes()     │
+                │  - mealsForDate() / caloriesForDate()   │
                 │  - load/save user_profile.json          │
                 └───────┬─────────────────────┬───────────┘
                         ▼                     ▼
-          diet.csv · workouts.csv      ProfileCalculator
+          diet.json · workouts.json    ProfileCalculator
           presets.json · user_profile  (BMR, TDEE, target;
                                         pure math)
 
@@ -130,42 +139,55 @@ UI classes only show things and react to clicks. **All file work and math live i
 
 ## 🔄 How Dates Work
 
-The app doesn't "remember" the day. **Every row stores its own date** at the moment it is logged:
+The app doesn't "remember" the day. **Every record stores its own date** at the moment it is logged:
 
 ```
-Add Meal clicked → date = QDate::currentDate(), time = QTime::currentTime() → append row
+Add Meal clicked → date = QDate::currentDate(), time = QTime::currentTime() → saved with the meal
 
 ```
 
-* Log lunch, close the app, reopen at night, log dinner → both rows have today's date automatically.
+* Log lunch, close the app, reopen at night, log dinner → both records have today's date automatically.
 
-* **"Today"** = read the CSV and keep only rows where `Date == today`.
+* **"Today"** = load the file and keep only records where `date == today`.
 
-* **History** = group rows by `Date` and sum.
+* **History** = group records by `date` and sum.
 
-* Writing uses `QIODevice::Append`, so old rows are never overwritten.
+* Saving = load the whole array, append the new object, write the file back with `QSaveFile` (atomic: the old file is replaced only if the write fully succeeds).
 
 ## 🗄️ Data Formats
 
-### 1. `diet.csv`
+Why JSON and not CSV? A comma or a new line inside a text field breaks CSV columns and has to be cleaned by hand. JSON escapes everything automatically, keeps numbers as numbers, and lets a record simply omit fields that don't apply.
+
+### 1. `diet.json`
+
+An array of meal objects.
 
 ```
-Date,Time,Food,Grams,Calories
-2026-11-07,12:30:15,Chicken Breast,200,330
-2026-11-07,21:10:04,White Rice,150,195
+[
+  {
+    "date": "2026-11-07",
+    "time": "12:30:15",
+    "food": "Chicken Breast",
+    "grams": 200,
+    "calories": 330
+  }
+]
 
 ```
 
-`Calories = Grams × cals_per_100g / 100`
+`calories = grams × cals_per_100g / 100`
 
-### 2. `workouts.csv`
+### 2. `workouts.json`
 
-One fixed set of columns. Fields that don't apply to a workout are left empty.
+Fields that don't apply to a workout are simply left out.
 
 ```
-Date,Time,Workout,Minutes,Sets,Reps,WeightKg,Intensity
-2026-11-07,10:00:00,Wrestling / Grappling,60,,,,High
-2026-11-07,17:30:00,Strength: Legs / Posterior Chain,,5,5,110,Moderate
+[
+  {"date": "2026-11-07", "time": "10:00:00", "workout": "Wrestling / Grappling",
+   "minutes": 60, "intensity": "High"},
+  {"date": "2026-11-07", "time": "17:30:00", "workout": "Strength: Legs / Posterior Chain",
+   "sets": 5, "reps": 5, "weightKg": 110, "intensity": "Moderate"}
+]
 
 ```
 
@@ -197,7 +219,7 @@ Each workout has a `type` that decides which inputs the UI shows.
 
 ### 4. `user_profile.json`
 
-Written by the Profile tab.
+Written by the Profile dialog.
 
 ```
 {
@@ -232,7 +254,8 @@ Written by the Profile tab.
 
 ### Main window
 
-`QMainWindow` with a `QTabWidget`: **Dashboard · Diet · Workouts · Profile** *(Profile tab added in Step 6)*.
+`QMainWindow` with a `QTabWidget`: **Dashboard · Diet · Workouts**.
+The profile is a `QAction` in the **File** menu (`Ctrl+P`) that opens a dialog *(added in Step 6)*.
 
 ### Dashboard (`DashboardTab`)
 
@@ -256,9 +279,9 @@ Four summary cards (`QGroupBox` + `QLabel`):
 
 * Live `QLabel`: `Calories = grams × cals_per_100g / 100`
 
-* **Add Meal** `QPushButton` → appends to `diet.csv`, emits `dataChanged()`
+* **Add Meal** `QPushButton` → saves to `diet.json`, emits `dataChanged()`
 
-* `QTableWidget` of today's meals (Time, Food, Grams, Calories)
+* `QTableWidget` of today's meals (Time, Food, Grams, Calories), newest on top
 
 ### Workouts (`WorkoutsTab`)
 
@@ -270,11 +293,11 @@ Four summary cards (`QGroupBox` + `QLabel`):
 
 * Intensity: Low / Moderate / High
 
-* **Add Workout** button → appends to `workouts.csv`
+* **Add Workout** button → saves to `workouts.json`
 
 * `QTableWidget` of today's workouts
 
-### Profile (`ProfileTab`)
+### Profile dialog (`QDialog`)
 
 * Weight, height, age, sex, activity level, goal (`QFormLayout`)
 
@@ -287,10 +310,10 @@ Each step works on its own before moving on.
 | \# | Step | What you learn | 
 | ----- | ----- | ----- | 
 | 1 | Create project (Qt Widgets Application, CMake) and run an empty window | Project setup | 
-| 2 | `MainWindow` with `QTabWidget` and tabs | Tabs, layouts | 
+| 2 | `MainWindow` with `QTabWidget` and tabs | Tabs, layouts, QAction | 
 | 3 | `DietTab` with fake in-memory data (combo, spin box, live calories, table) | Widgets, signals & slots | 
-| 4 | `DataManager`: save/load `diet.csv` + `presets.json` | File I/O, QJson, custom signals | 
-| 5 | `WorkoutsTab` (timed vs. strength fields) + `workouts.csv` | Showing/hiding widgets | 
-| 6 | `ProfileCalculator` + `ProfileTab` + `user_profile.json` | Logic + forms | 
+| 4 | `DataManager`: save/load `diet.json` + `presets.json` | File I/O, QJson, custom signals | 
+| 5 | `WorkoutsTab` (timed vs. strength fields) + `workouts.json` | Showing/hiding widgets | 
+| 6 | `ProfileCalculator` + Profile dialog + `user_profile.json` | Logic + QDialog + forms | 
 | 7 | `DashboardTab` listening to `dataChanged()` | Keeping tabs in sync | 
 | 8 | *(Later)* Qt Charts history chart, Fusion dark theme | Polish | 

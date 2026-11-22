@@ -12,8 +12,11 @@ qt_add_executable(Clinched
     mainwindow.h
     diettab.h diettab.cpp
     datamanager.h datamanager.cpp
-    presets.json
-    resources.qrc
+    # resources.qrc
+)
+qt_add_resources(Clinched "app_resources"
+    PREFIX "/"
+    FILES presets.json
 )
 
 target_link_libraries(Clinched

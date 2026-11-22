@@ -1,11 +1,13 @@
 #include "datamanager.h"
 
-#include <QDateTime>
 #include <QDebug>
 #include <QDir>
 #include <QFile>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QSaveFile>
 #include <QStandardPaths>
-#include <QTextStream>
 
 DataManager::DataManager(QObject *parent)
     : QObject{parent}
@@ -18,77 +20,85 @@ DataManager::DataManager(QObject *parent)
 }
 
 // Helper function returns the path if needed (as QString)
-QString DataManager::dietFilePath() const
+QString DataManager::filePath(const QString &fileName) const
 {
-    return QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/diet.csv";
+    return QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + '/' + fileName;
 }
 
 void DataManager::addMeal(const QString &food, int grams, int calories)
 {
-    QFile file(dietFilePath());
-    if (!file.open(QIODevice::Text | QIODevice::Append)) {
-        qWarning() << "Couldn't open file: " << file.fileName();
-        return;
-    }
+    // Build the new record as a JSON object
+    QJsonObject meal;
+    meal["date"] = QDate::currentDate().toString(Qt::ISODate);
+    meal["time"] = QTime::currentTime().toString("HH:mm:ss");
+    meal["food"] = food;
+    meal["grams"] = grams;
+    meal["calories"] = calories;
 
-    QTextStream out(&file);
-    out.setEncoding(QStringConverter::Utf8); // To handle the Arabic language
+    // Load all old meals and add the new one
+    QJsonArray meals = readArray("diet.json");
+    meals.append(meal);
 
-    // Write the header names first if the file is newly created
-    if (file.size() == 0)
-        out << "Date,Time,Food,Grams,Calories\n";
-
-    // Replace the comma by whitespace to not break the csv's columns
-    QString safeFood = food;
-    safeFood.replace(',', ' ');
-
-    out << QDate::currentDate().toString(Qt::ISODate) << ','
-        << QTime::currentTime().toString("HH:mm:ss") << ','
-        << safeFood << ','
-        << grams << ','
-        << calories << '\n';
-
-    file.close();
-    emit dataChanged(); // A signal to the other tabs that we have a new record
+    // Save/Write everything back
+    if (writeArray("diet.json", meals))
+        emit dataChanged(); // A signal to the other tabs that we have a new record
 }
 
 QList<Meal> DataManager::mealsForDate(const QDate &date) const
 {
     QList<Meal> result;
 
-    QFile file(dietFilePath());
-    if (!file.open(QIODevice::Text | QIODevice::ReadOnly)) {
-        return result; // No File -> No Meals (yet!)
-    }
+    const auto meals = readArray("diet.json");
+    for (const auto &value : meals) {
+        const auto obj = value.toObject();
 
-    QTextStream in(&file);
-    // To handle the Arabic language when reading the file again
-    in.setEncoding(QStringConverter::Utf8);
-    in.readLine(); // Skip the header line in every first entry
+        const auto rowDate = QDate::fromString(obj["date"].toString(), Qt::ISODate);
+        if (rowDate != date)
+                continue; // skip if it's a different day
 
-    // Guard Clauses:- batgahel ay record msh monaseb
-    while(!in.atEnd()) {
-        // Clean the record (line / row) from white spaces
-        const QString record = in.readLine().trimmed();
-
-        if (record.isEmpty())
-            continue;
-
-        const QStringList fields = record.split(',');
-        if (fields.size() != 5) continue;
-
-        const QDate rowDate = QDate::fromString(fields[0], Qt::ISODate);
-        if (rowDate != date) continue;
-
-        Meal entry;
-        entry.date = rowDate;
-        entry.time = QTime::fromString(fields[1], "HH:mm:ss");
-        entry.food = fields[2];
-        entry.grams = fields[3].toInt();
-        entry.calories = fields[4].toInt();
-
-        result.append(entry);
+        Meal meal;
+        meal.date = rowDate;
+        meal.time = QTime::fromString(obj["time"].toString(), "HH:mm:ss");
+        meal.food = obj["food"].toString();
+        meal.grams = obj["grams"].toInt();
+        meal.calories = obj["calories"].toInt();
+        result.append(meal);
     }
 
     return result;
+}
+
+int DataManager::caloriesForDate(const QDate &date) const
+{
+    const auto meals = mealsForDate(date);
+    auto totalCalories = 0;
+    for (const auto &meal : meals) {
+        totalCalories+=meal.calories;
+    }
+
+    return totalCalories;
+}
+
+QJsonArray DataManager::readArray(const QString &fileName) const
+{
+    QFile file(filePath(fileName));
+    if (!file.open(QIODevice::ReadOnly)) {
+        return QJsonArray(); // No files yet = nothing is saved yet!
+    }
+
+    const auto doc = QJsonDocument::fromJson(file.readAll());
+    return doc.array(); // Empty array if the file is empty or damaged
+}
+
+
+bool DataManager::writeArray(const QString &fileName, const QJsonArray &array) const
+{
+    QSaveFile file(filePath(fileName));
+    if (!file.open(QIODevice::WriteOnly)) {
+        qWarning() << "Couldn't open file: " << file.fileName();
+        return false;
+    }
+
+    file.write(QJsonDocument(array).toJson(QJsonDocument::Indented));
+    return file.commit();
 }

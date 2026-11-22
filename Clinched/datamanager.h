@@ -7,7 +7,9 @@
 #include <QString>
 #include <QTime>
 
-// One row of diet.csv
+class QJsonArray;
+
+// One record of diet.json
 struct Meal
 {
     QDate date;
@@ -26,12 +28,15 @@ public:
 
     void addMeal(const QString &food, int grams, int calories);
     QList<Meal> mealsForDate(const QDate &date) const;
+    int caloriesForDate(const QDate &date) const;
 
 signals:
     void dataChanged(); // emitted after anything is saved
 
 private:
-    QString dietFilePath() const;
+    QString filePath(const QString &fileName) const;
+    QJsonArray readArray(const QString &fileName) const;
+    bool writeArray(const QString &fileName, const QJsonArray &array) const;
 };
 
 #endif // DATAMANAGER_H

@@ -1,7 +1,7 @@
 #ifndef DIETTAB_H
 #define DIETTAB_H
 
-#include "datamanager.h"
+#include "models.h"
 
 #include <QList>
 #include <QString>
@@ -12,6 +12,7 @@ class QLabel;
 class QPushButton;
 class QSpinBox;
 class QTableWidget;
+class DataManager;
 
 class DietTab : public QWidget
 {

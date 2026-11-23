@@ -1,29 +1,13 @@
 #ifndef DATAMANAGER_H
 #define DATAMANAGER_H
 
-#include <QDate>
 #include <QList>
 #include <QObject>
 #include <QString>
-#include <QTime>
+
+#include "models.h"
 
 class QJsonDocument;
-
-// One record of diet.json
-struct Meal
-{
-    QDate date;
-    QTime time;
-    QString food;
-    int grams = 0;
-    int calories = 0;
-};
-
-// One food from presets.json
-struct Food {
-    QString name;
-    int calsPer100g = 0;
-};
 
 class DataManager : public QObject
 {

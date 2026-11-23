@@ -8,6 +8,7 @@
 #include <QJsonObject>
 #include <QSaveFile>
 #include <QStandardPaths>
+#include <algorithm>
 
 DataManager::DataManager(QObject *parent)
     : QObject{parent}
@@ -101,9 +102,14 @@ QList<Food> DataManager::foods() const
         food.name = obj["name"].toString();
         food.calsPer100g = obj["cals_per_100g"].toInt();
 
-        if (!food.name.isEmpty())
+        if (!food.name.isEmpty() && food.calsPer100g > 0)
             result.append(food);
     }
+
+    // ترتيب الأكلات أبجدياً
+    std::sort(result.begin(), result.end(), [] (const Food &a, const Food &b) {
+        return a.name < b.name;
+    });
 
     return result;
 }

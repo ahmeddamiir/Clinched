@@ -12,7 +12,6 @@ qt_add_executable(Clinched
     mainwindow.h
     diettab.h diettab.cpp
     datamanager.h datamanager.cpp
-    # resources.qrc
 )
 qt_add_resources(Clinched "app_resources"
     PREFIX "/"

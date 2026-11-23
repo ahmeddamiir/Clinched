@@ -20,12 +20,15 @@ DataManager::DataManager(QObject *parent)
     ensurePresetsFile();
 }
 
-// Helper function returns the path if needed (as QString)
+// دالة مساعدة بترجع مسار أي ملف جوه فولدر بيانات التطبيق
 QString DataManager::filePath(const QString &fileName) const
 {
     return QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + '/' + fileName;
 }
 
+// بتاخد بيانات الوجبة و تحولها لجيسون اوبجكت و تضيف عليه التاريخ و الساعة
+// بتقرأ مصفوفة الوجبات القديمة من ملف الدايت و تضيف عليها الجديدة و تحفظهم و تبعت إشارة
+// عشان التاب المهتم يحدث نفسه
 void DataManager::addMeal(const QString &food, int grams, int calories)
 {
     // Build the new record as a JSON object
@@ -45,6 +48,7 @@ void DataManager::addMeal(const QString &food, int grams, int calories)
         emit dataChanged(); // A signal to the other tabs that we have a new record
 }
 
+// بتقرأ كل الوجبات, تفلترهم, و ترجع قائمة بالوجبات اللي تاريخها يطابق اليوم المطلوب بس
 QList<Meal> DataManager::mealsForDate(const QDate &date) const
 {
     QList<Meal> result;
@@ -69,6 +73,7 @@ QList<Meal> DataManager::mealsForDate(const QDate &date) const
     return result;
 }
 
+// بتجيب وجبات اليوم و تجمع سعراتهم و ترجع الاجمالي كرقم صحيح
 int DataManager::caloriesForDate(const QDate &date) const
 {
     const auto meals = mealsForDate(date);
@@ -80,6 +85,8 @@ int DataManager::caloriesForDate(const QDate &date) const
     return totalCalories;
 }
 
+// بتقرأ ملف البريستس و تدخل على مصفوفة فوودز, تحول كل عنصر فيها لستراكت (الاسم و السعرات)
+// و ترجعهم في قائمة عشان تابة الدايت تعرضهم
 QList<Food> DataManager::foods() const
 {
     QList<Food> result;
@@ -101,6 +108,7 @@ QList<Food> DataManager::foods() const
     return result;
 }
 
+// بتفتح أي ملف جيسون و تقرأ محتواه و ترجعه كدوكمنت و لو مفيش ملف ترجع مستند فاضي
 QJsonDocument DataManager::readDocument(const QString &fileName) const
 {
     QFile file(filePath(fileName));
@@ -111,7 +119,7 @@ QJsonDocument DataManager::readDocument(const QString &fileName) const
     return QJsonDocument::fromJson(file.readAll()); // null document if damaged
 }
 
-
+// بتكتب أي دوكمنت في الملف باستخدام كيو سيف فايل
 bool DataManager::writeDocument(const QString &fileName, const QJsonDocument &doc) const
 {
     QSaveFile file(filePath(fileName));
@@ -124,6 +132,7 @@ bool DataManager::writeDocument(const QString &fileName, const QJsonDocument &do
     return file.commit();
 }
 
+// بتشيك لو ملف البريسيتس مش موجود, بتنسخه و بتفك عنه وضع الفراءة فقط عشان أعدل فيه
 void DataManager::ensurePresetsFile() const
 {
     const QString target = filePath("presets.json");

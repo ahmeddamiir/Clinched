@@ -26,10 +26,9 @@ private slots:
     void refreshMeals(); // reloads today's meals into the table
 
 private:
-
-void buildUi();
-void appendMealRecord(const Meal &meal);
-int caloriesFor(int foodIndex, int grams) const;
+    void buildUi();
+    void appendMealRecord(const Meal &meal);
+    int caloriesFor(int foodIndex, int grams) const;
 
 DataManager *m_data;
 QList<Food> m_foods;

@@ -10,7 +10,6 @@
 #include <QPushButton>
 #include <QSpinBox>
 #include <QTableWidget>
-#include <QShortcut>
 
 DietTab::DietTab(DataManager *dataManager, QWidget *parent)
     : QWidget{parent}, m_data(dataManager)
@@ -19,6 +18,7 @@ DietTab::DietTab(DataManager *dataManager, QWidget *parent)
     buildUi();
 }
 
+// بترسم كل عناصر التاب: العنوان, قائمة اختيار الاكل, الخانات.. كل حاجة
 void DietTab::buildUi()
 {
     // ---- Create the widgets ----
@@ -70,6 +70,7 @@ void DietTab::buildUi()
     refreshMeals();
 }
 
+// دالة حساب السعرات للأكلة
 int DietTab::caloriesFor(int foodIndex, int grams) const
 {
     if (foodIndex < 0 || foodIndex >= m_foods.size())
@@ -79,6 +80,7 @@ int DietTab::caloriesFor(int foodIndex, int grams) const
     return qRound(grams * food.calsPer100g / 100.0);
 }
 
+// بتحدث تزامنياً و تلقائيا الكالوريز كل ما تغير الجرامات و بتقفل زرار اضافة الوجبة لو مفيش جرامات
 void DietTab::updatePreview()
 {
     const int grams = m_gramsSpin->value();
@@ -88,6 +90,8 @@ void DietTab::updatePreview()
     m_addButton->setEnabled(grams > 0 && !m_foods.isEmpty());
 }
 
+// بتجمع اسم الاكلة و الجرامات و سعراتها و تبعتها ل m_data
+// بعدين تصفر الجرامات
 void DietTab::addMeal()
 {
     const QString name = m_foodCombo->currentText();
@@ -98,6 +102,9 @@ void DietTab::addMeal()
     m_gramsSpin->setValue(0);
 }
 
+// بتشتغل تلقائيا أول ما البرنامج يفتح و تلقائياً كل ما داتامانجر يبعت اشارة ان الداتا اتغيرت
+// بتمسح الجدول, تجيب وجبات النهاردة, و تلف عليهم بالعكس عشان تعرف احدث وجبة الاول و ترسم كل صف
+// و تحسب إجمالي سعرات اليوم
 void DietTab::refreshMeals()
 {
     const QList<Meal> meals = m_data->mealsForDate(QDate::currentDate());
@@ -116,6 +123,8 @@ void DietTab::refreshMeals()
     m_totalLabel->setText(QString("Total today: %1 kcal").arg(total));
 }
 
+// دالة مساعدة بتضيف صف جديد في m_table
+// و تعبئ خلاياه الأربعة, الوقت, اسم الأكلة, الجرامات, السعرات
 void DietTab::appendMealRecord(const Meal &meal)
 {
     const int row = m_table->rowCount();

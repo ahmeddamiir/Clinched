@@ -33,19 +33,13 @@ QString DataManager::filePath(const QString &fileName) const
 void DataManager::addMeal(const QString &food, int grams, int calories)
 {
     // Build the new record as a JSON object
-    QJsonObject meal;
-    meal["date"] = QDate::currentDate().toString(Qt::ISODate);
-    meal["time"] = QTime::currentTime().toString("HH:mm:ss");
+    auto meal = newRecord();
     meal["food"] = food;
     meal["grams"] = grams;
     meal["calories"] = calories;
 
-    // Load all old meals and add the new one
-    QJsonArray meals = readDocument("diet.json").array();
-    meals.append(meal);
-
     // Save/Write everything back
-    if (writeDocument("diet.json", QJsonDocument(meals)))
+    if (appendRecord("diet.json", meal))
         emit dataChanged(); // A signal to the other tabs that we have a new record
 }
 
@@ -54,16 +48,10 @@ QList<Meal> DataManager::mealsForDate(const QDate &date) const
 {
     QList<Meal> result;
 
-    const auto meals = readDocument("diet.json").array();
-    for (const auto &value : meals) {
-        const auto obj = value.toObject();
-
-        const auto rowDate = QDate::fromString(obj["date"].toString(), Qt::ISODate);
-        if (rowDate != date)
-                continue; // skip if it's a different day
-
+    const auto records = recordsForDate("diet.json", date);
+    for (const auto &obj : records) {
         Meal meal;
-        meal.date = rowDate;
+        meal.date = date;
         meal.time = QTime::fromString(obj["time"].toString(), "HH:mm:ss");
         meal.food = obj["food"].toString();
         meal.grams = obj["grams"].toInt();
@@ -136,6 +124,39 @@ bool DataManager::writeDocument(const QString &fileName, const QJsonDocument &do
 
     file.write(doc.toJson(QJsonDocument::Indented));
     return file.commit();
+}
+
+// A new record that already has today's date and the current time
+QJsonObject DataManager::newRecord() const
+{
+    QJsonObject record;
+    record["date"] = QDate::currentDate().toString(Qt::ISODate);
+    record["time"] = QTime::currentTime().toString("HH:mm:ss");
+    return record;
+}
+
+// Load the whole array, add the record at the end, save everything back
+bool DataManager::appendRecord(const QString &fileName, const QJsonObject &record) const
+{
+    QJsonArray records = readDocument(fileName).array();
+    records.append(record);
+    return writeDocument(fileName, QJsonDocument(records));
+}
+
+// All the records of one day (the date filter lives in ONE place now)
+QList<QJsonObject> DataManager::recordsForDate(const QString &fileName, const QDate &date) const
+{
+    QList<QJsonObject> result;
+
+    const QJsonArray records = readDocument(fileName).array();
+    for (const QJsonValue &value : records) {
+        const QJsonObject obj = value.toObject();
+
+        const QDate rowDate = QDate::fromString(obj["date"].toString(), Qt::ISODate);
+        if (rowDate == date)
+            result.append(obj);
+    }
+    return result;
 }
 
 // بتشيك لو ملف البريسيتس مش موجود, بتنسخه و بتفك عنه وضع الفراءة فقط عشان أعدل فيه

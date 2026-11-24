@@ -1,6 +1,7 @@
 #include "mainwindow.h"
 #include "datamanager.h"
 #include "diettab.h"
+#include "workoutstab.h"
 
 #include <QAction>
 #include <QLabel>
@@ -33,7 +34,7 @@ void MainWindow::createTabs()
 
     m_tabs->addTab(dashboardPage, "Dashboard");
     m_tabs->addTab(new DietTab(m_data), "Diet");
-    m_tabs->addTab(workoutsPage, "Workouts");
+    m_tabs->addTab(new WorkoutsTab(m_data), "Workouts");
 
     setCentralWidget(m_tabs);
 }

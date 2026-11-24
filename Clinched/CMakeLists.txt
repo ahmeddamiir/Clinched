@@ -13,6 +13,7 @@ qt_add_executable(Clinched
     diettab.h diettab.cpp
     datamanager.h datamanager.cpp
     models.h
+    workoutstab.h workoutstab.cpp
 )
 qt_add_resources(Clinched "app_resources"
     PREFIX "/"

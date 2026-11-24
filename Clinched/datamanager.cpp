@@ -8,7 +8,21 @@
 #include <QJsonObject>
 #include <QSaveFile>
 #include <QStandardPaths>
-#include <algorithm>
+
+namespace {
+
+// The ONLY place that knows how a workout type is written in the files
+WorkoutType typeFromString(const QString &text)
+{
+    return text == "strength" ? WorkoutType::Strength : WorkoutType::Timed;
+}
+
+QString typeToString(WorkoutType type)
+{
+    return type == WorkoutType::Strength ? "strength" : "timed";
+}
+
+} // namespace
 
 DataManager::DataManager(QObject *parent)
     : QObject{parent}
@@ -156,6 +170,70 @@ QList<QJsonObject> DataManager::recordsForDate(const QString &fileName, const QD
         if (rowDate == date)
             result.append(obj);
     }
+    return result;
+}
+
+// The date and time inside `workout` are ignored: DataManager stamps the current ones
+void DataManager::addWorkout(const Workout &workout)
+{
+    QJsonObject record = newRecord();
+    record["workout"] = workout.name;
+    record["type"] = typeToString(workout.type);
+    record["intensity"] = workout.intensity;
+
+    // Only write the fields that make sense for this type of workout
+    if (workout.type == WorkoutType::Timed) {
+            record["minutes"] = workout.minutes;
+    } else {
+        record["sets"] = workout.sets;
+        record["reps"] = workout.reps;
+        record["weightKg"] = workout.weightKg;
+    }
+
+    if (appendRecord("workouts.json", record))
+        emit dataChanged();
+}
+
+QList<Workout> DataManager::workoutsForDate(const QDate &date) const
+{
+    QList<Workout> result;
+
+    const auto records = recordsForDate("workouts.json", date);
+    for (const auto &obj : records) {
+        Workout workout;
+        workout.date = date;
+        workout.time = QTime::fromString(obj["time"].toString(), "HH:mm:ss");
+        workout.name = obj["workout"].toString();
+        workout.type = typeFromString(obj["type"].toString());
+        workout.minutes = obj["minutes"].toInt();
+        workout.sets = obj["sets"].toInt();
+        workout.reps = obj["reps"].toInt();
+        workout.weightKg = obj["weightKg"].toDouble();
+        workout.intensity = obj["intensity"].toString();
+        result.append(workout);
+    }
+
+    return result;
+}
+
+QList<WorkoutPreset> DataManager::workoutPresets() const
+{
+    QList<WorkoutPreset> result;
+
+    const QJsonObject root = readDocument("presets.json").object();
+    const QJsonArray workoutArray = root["workouts"].toArray();
+
+    for (const QJsonValue &value : workoutArray) {
+        const auto obj = value.toObject();
+
+        WorkoutPreset preset;
+        preset.name = obj["name"].toString();
+        preset.type = typeFromString(obj["type"].toString());
+
+        if (!preset.name.isEmpty())
+            result.append(preset);
+    }
+
     return result;
 }
 

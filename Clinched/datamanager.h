@@ -22,6 +22,10 @@ public:
     int caloriesForDate(const QDate &date) const;
     QList<Food> foods() const;
 
+    void addWorkout(const Workout &workout);
+    QList<Workout> workoutsForDate(const QDate &date) const;
+    QList<WorkoutPreset> workoutPresets() const;
+
 signals:
     void dataChanged(); // emitted after anything is saved
 

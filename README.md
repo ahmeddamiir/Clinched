@@ -24,7 +24,7 @@
 
   * \[x\] 4c: Foods loaded from `presets.json`
 
-* \[ \] Step 5: Workouts tab + `workouts.json`
+* \[x\] Step 5: Workouts tab + `workouts.json`
 
 * \[ \] Step 6: Profile dialog + calorie target
 
@@ -73,11 +73,11 @@ Clinched/                          # repo root
     ├── mainwindow.h / .cpp        # Window with QTabWidget, owns DataManager
     ├── dashboardtab.h / .cpp      # (planned) Today's summary cards
     ├── diettab.h / .cpp           # Log meals, live calorie preview, today's meals table
-    ├── workoutstab.h / .cpp       # (planned) Log workouts
+    ├── workoutstab.h / .cpp       # Log workouts (inputs change by workout type)
     ├── profiledialog.h / .cpp     # (planned) Body details + goal
     ├── datamanager.h / .cpp       # JSON read/write, date filtering, dataChanged() signal
     ├── profilecalculator.h / .cpp # (planned) BMR, TDEE, calorie target
-    └── presets.json               # (planned) default foods/workouts (Qt resource)
+    └── presets.json               # default foods/workouts (Qt resource)
 
 ```
 
@@ -183,9 +183,9 @@ Fields that don't apply to a workout are simply left out.
 ```
 [
   {"date": "2026-11-07", "time": "10:00:00", "workout": "Wrestling / Grappling",
-   "minutes": 60, "intensity": "High"},
+   "type": "timed", "minutes": 60, "intensity": "High"},
   {"date": "2026-11-07", "time": "17:30:00", "workout": "Strength: Legs / Posterior Chain",
-   "sets": 5, "reps": 5, "weightKg": 110, "intensity": "Moderate"}
+   "type": "strength", "sets": 5, "reps": 5, "weightKg": 110, "intensity": "Moderate"}
 ]
 
 ```

@@ -68,16 +68,20 @@
 Clinched/                          # repo root
 ├── README.md
 └── Clinched/                      # Qt project folder
-    ├── CMakeLists.txt
-    ├── main.cpp                   # Creates QApplication + MainWindow
-    ├── mainwindow.h / .cpp        # Window with QTabWidget, owns DataManager
-    ├── dashboardtab.h / .cpp      # (planned) Today's summary cards
-    ├── diettab.h / .cpp           # Log meals, live calorie preview, today's meals table
-    ├── workoutstab.h / .cpp       # Log workouts (inputs change by workout type)
-    ├── profiledialog.h / .cpp     # (planned) Body details + goal
-    ├── datamanager.h / .cpp       # JSON read/write, date filtering, dataChanged() signal
-    ├── profilecalculator.h / .cpp # (planned) BMR, TDEE, calorie target
-    └── presets.json               # default foods/workouts (Qt resource)
+├── CMakeLists.txt
+├── main.cpp                   # Creates QApplication + MainWindow
+├── core/                      # Non-UI data models and persistence
+│   ├── models.h               # Plain structs & enums (Meal, Food, Workout)
+│   ├── datamanager.h / .cpp   # JSON read/write, date filtering, dataChanged() signal
+│   └── profilecalculator.h / .cpp # (planned) BMR, TDEE, calorie target
+├── ui/                        # Qt Widgets screens and dialogs
+│   ├── mainwindow.h / .cpp    # Window with QTabWidget, owns DataManager
+│   ├── dashboardtab.h / .cpp  # (planned) Today's summary cards
+│   ├── diettab.h / .cpp       # Log meals, live calorie preview, today's meals table
+│   ├── workoutstab.h / .cpp   # Log workouts (inputs change by workout type)
+│   └── profiledialog.h / .cpp # (planned) Body details + goal
+└── resources/
+└── presets.json           # Default foods/workouts (bundled via CMake)
 
 ```
 

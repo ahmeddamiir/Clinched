@@ -8,16 +8,24 @@ qt_standard_project_setup()
 qt_add_executable(Clinched
     WIN32 MACOSX_BUNDLE
     main.cpp
-    mainwindow.cpp
-    mainwindow.h
-    diettab.h diettab.cpp
-    datamanager.h datamanager.cpp
-    models.h
-    workoutstab.h workoutstab.cpp
+    core/models.h
+    core/datamanager.h
+    core/datamanager.cpp
+    ui/mainwindow.cpp
+    ui/mainwindow.h
+    ui/diettab.h
+    ui/diettab.cpp
+    ui/workoutstab.h
+    ui/workoutstab.cpp
+)
+
+target_include_directories(Clinched PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/core
+    ${CMAKE_CURRENT_SOURCE_DIR}/ui
 )
 qt_add_resources(Clinched "app_resources"
     PREFIX "/"
-    FILES presets.json
+    FILES resources/presets.json
 )
 
 target_link_libraries(Clinched

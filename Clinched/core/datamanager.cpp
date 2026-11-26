@@ -8,6 +8,7 @@
 #include <QJsonObject>
 #include <QSaveFile>
 #include <QStandardPaths>
+#include <algorithm>
 
 namespace {
 
@@ -33,12 +34,6 @@ DataManager::DataManager(QObject *parent)
 
     qDebug() << "Data folder:" << folder; // temporary: shows where the files are
     ensurePresetsFile();
-}
-
-// دالة مساعدة بترجع مسار أي ملف جوه فولدر بيانات التطبيق
-QString DataManager::filePath(const QString &fileName) const
-{
-    return QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + '/' + fileName;
 }
 
 // بتاخد بيانات الوجبة و تحولها لجيسون اوبجكت و تضيف عليه التاريخ و الساعة
@@ -116,63 +111,6 @@ QList<Food> DataManager::foods() const
     return result;
 }
 
-// بتفتح أي ملف جيسون و تقرأ محتواه و ترجعه كدوكمنت و لو مفيش ملف ترجع مستند فاضي
-QJsonDocument DataManager::readDocument(const QString &fileName) const
-{
-    QFile file(filePath(fileName));
-    if (!file.open(QIODevice::ReadOnly)) {
-        return QJsonDocument(); // No file yet = empty document
-    }
-
-    return QJsonDocument::fromJson(file.readAll()); // null document if damaged
-}
-
-// بتكتب أي دوكمنت في الملف باستخدام كيو سيف فايل
-bool DataManager::writeDocument(const QString &fileName, const QJsonDocument &doc) const
-{
-    QSaveFile file(filePath(fileName));
-    if (!file.open(QIODevice::WriteOnly)) {
-        qWarning() << "Couldn't open file: " << file.fileName();
-        return false;
-    }
-
-    file.write(doc.toJson(QJsonDocument::Indented));
-    return file.commit();
-}
-
-// A new record that already has today's date and the current time
-QJsonObject DataManager::newRecord() const
-{
-    QJsonObject record;
-    record["date"] = QDate::currentDate().toString(Qt::ISODate);
-    record["time"] = QTime::currentTime().toString("HH:mm:ss");
-    return record;
-}
-
-// Load the whole array, add the record at the end, save everything back
-bool DataManager::appendRecord(const QString &fileName, const QJsonObject &record) const
-{
-    QJsonArray records = readDocument(fileName).array();
-    records.append(record);
-    return writeDocument(fileName, QJsonDocument(records));
-}
-
-// All the records of one day (the date filter lives in ONE place now)
-QList<QJsonObject> DataManager::recordsForDate(const QString &fileName, const QDate &date) const
-{
-    QList<QJsonObject> result;
-
-    const QJsonArray records = readDocument(fileName).array();
-    for (const QJsonValue &value : records) {
-        const QJsonObject obj = value.toObject();
-
-        const QDate rowDate = QDate::fromString(obj["date"].toString(), Qt::ISODate);
-        if (rowDate == date)
-            result.append(obj);
-    }
-    return result;
-}
-
 // The date and time inside `workout` are ignored: DataManager stamps the current ones
 void DataManager::addWorkout(const Workout &workout)
 {
@@ -237,13 +175,76 @@ QList<WorkoutPreset> DataManager::workoutPresets() const
     return result;
 }
 
+// دالة مساعدة بترجع مسار أي ملف جوه فولدر بيانات التطبيق
+QString DataManager::filePath(const QString &fileName) const
+{
+    return QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + '/' + fileName;
+}
+
+// بتفتح أي ملف جيسون و تقرأ محتواه و ترجعه كدوكمنت و لو مفيش ملف ترجع مستند فاضي
+QJsonDocument DataManager::readDocument(const QString &fileName) const
+{
+    QFile file(filePath(fileName));
+    if (!file.open(QIODevice::ReadOnly)) {
+        return QJsonDocument(); // No file yet = empty document
+    }
+
+    return QJsonDocument::fromJson(file.readAll()); // null document if damaged
+}
+
+// بتكتب أي دوكمنت في الملف باستخدام كيو سيف فايل
+bool DataManager::writeDocument(const QString &fileName, const QJsonDocument &doc) const
+{
+    QSaveFile file(filePath(fileName));
+    if (!file.open(QIODevice::WriteOnly)) {
+        qWarning() << "Couldn't open file: " << file.fileName();
+        return false;
+    }
+
+    file.write(doc.toJson(QJsonDocument::Indented));
+    return file.commit();
+}
+
+// A new record that already has today's date and the current time
+QJsonObject DataManager::newRecord() const
+{
+    QJsonObject record;
+    record["date"] = QDate::currentDate().toString(Qt::ISODate);
+    record["time"] = QTime::currentTime().toString("HH:mm:ss");
+    return record;
+}
+
+// Load the whole array, add the record at the end, save everything back
+bool DataManager::appendRecord(const QString &fileName, const QJsonObject &record) const
+{
+    QJsonArray records = readDocument(fileName).array();
+    records.append(record);
+    return writeDocument(fileName, QJsonDocument(records));
+}
+
+// All the records of one day (the date filter lives in ONE place now)
+QList<QJsonObject> DataManager::recordsForDate(const QString &fileName, const QDate &date) const
+{
+    QList<QJsonObject> result;
+
+    const QJsonArray records = readDocument(fileName).array();
+    for (const QJsonValue &value : records) {
+        const QJsonObject obj = value.toObject();
+
+        const QDate rowDate = QDate::fromString(obj["date"].toString(), Qt::ISODate);
+        if (rowDate == date)
+            result.append(obj);
+    }
+    return result;
+}
+
 // بتشيك لو ملف البريسيتس مش موجود, بتنسخه و بتفك عنه وضع الفراءة فقط عشان أعدل فيه
 void DataManager::ensurePresetsFile() const
 {
     const QString target = filePath("presets.json");
     if (QFile::exists(target)) return; // keep the user's own copy
 
-    if (!QFile::copy(":/presets.json", target)) {
+    if (!QFile::copy(":/resources/presets.json", target)) {
         qWarning() << "Couldn't create" << target;
         return;
     }
